@@ -2,10 +2,9 @@
 
 一个本地运行的 Classviva 辅助控制台。它用 Playwright 打开浏览器，读取当前作业页面，调用你自己配置的 OpenAI 兼容模型生成候选答案，并在你审核后填回网页。
 
-项目默认不包含任何 API Key、登录状态或个人作业链接，适合整理后发布到 GitHub。
+项目默认不包含任何 API Key、登录状态或个人作业链接。
 
-## 功能概览
-
+## 功能概览（废话喵）
 - 本地网页前端：启动、提取、求解、视觉求解、审核、填入都在浏览器页面完成。
 - Edge 优先：Windows 上优先启动 Microsoft Edge，失败时回退到 Playwright Chromium。
 - DOM 提取：从 Classviva 页面读取题目、公式、输入框、下拉框、单选/多选控件。
@@ -15,7 +14,7 @@
 - 填入保护：填入前会重新检查当前页面输入框，避免拿上一页的输入框 ID 填当前页。
 - 答案格式化：全角转半角、`π` 转 `pi`、`√x` 转 `sqrt(x)`，并按 Classviva 常见格式规则清理答案。
 
-## 工作原理
+## 工作原理（废话喵）
 
 ### 提取题目
 
@@ -60,7 +59,7 @@
 
 填入前会检查答案绑定的输入框是否还存在。如果你换到了下一页，旧输入框 ID 不存在，程序会按当前页面题号重新绑定，尽量避免“返回了答案但填入 0 个”的问题。
 
-## 安装
+## 安装（不是废话喵）
 
 建议使用 Python 3.10 或更高版本。
 
@@ -81,7 +80,7 @@ python -m pip install -r requirements.txt
 
 不要直接依赖系统里的 `pip.exe`，因为 Windows 上旧 Python 路径失效时容易报错。
 
-## 启动前端
+## 启动前端（不是废话喵）
 
 ```powershell
 python app.py
@@ -107,7 +106,7 @@ http://127.0.0.1:8765
 
 保存后会写入本机 `config.py`。密码框保存后会自动清空，前端只显示“key 已保存/未保存”。
 
-## 基本使用
+## 基本使用（很重要喵）
 
 1. 运行 `python app.py`。
 2. 打开 `http://127.0.0.1:8765`。
@@ -120,7 +119,7 @@ http://127.0.0.1:8765
 9. 在“答案”区域人工检查、修改。
 10. 确认无误后点击“填入”。
 
-## 模型配置
+## 模型配置（很重要喵）
 
 本项目使用 OpenAI Python SDK，只要服务商兼容 Chat Completions 接口，通常都可以配置。
 
@@ -170,7 +169,7 @@ https://dashscope-intl.aliyuncs.com/compatible-mode/v1
 - [DashScope 模型列表](https://help.aliyun.com/zh/model-studio/models)
 - [DashScope 视觉模型](https://help.aliyun.com/zh/model-studio/vision)
 
-## 命令行模式
+## 命令行模式（小白不用看喵）
 
 前端是推荐入口。项目仍保留命令行入口，方便调试：
 
@@ -196,7 +195,7 @@ python main.py --vision
 python main.py --selectors
 ```
 
-## 项目结构
+## 项目结构（无人在意喵）
 
 ```text
 app.py              本地网页控制台后端
@@ -213,7 +212,7 @@ requirements.txt    Python 依赖
 LICENSE             开源许可证
 ```
 
-## 隐私和开源检查
+## 隐私和开源检查（给我自己看的喵）
 
 不要提交这些内容：
 
@@ -234,7 +233,7 @@ rg -n "sk-|api_key|API_KEY|token|sesskey|password|attempt=" .
 
 如果使用本项目运行过真实 Classviva 页面，`browser_profile/` 里可能包含登录状态。这个目录必须删除或排除。
 
-## 常见问题
+## 常见问题（记得在issue里面详细描述并提交喵）
 
 ### `ModuleNotFoundError: No module named 'playwright'`
 
@@ -276,6 +275,6 @@ Classviva 对格式比较严格。常见要求：
 
 更多规则集中在 `prompts.py` 和 `formatter.py`。
 
-## 免责声明
+## 免责声明（与本人完全无关喵，只是提供了自动化的流程喵，题是AI做的喵）
 
 本项目是本地自动化和学习辅助工具。请遵守课程、平台、学校和相关网站的使用规则。模型生成内容可能错误，填入和提交前必须由使用者自行审核。
