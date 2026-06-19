@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Classviva Local</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="topbar">
+      <div>
+        <h1>Classviva Local</h1>
+        <p id="pageStatus">未启动</p>
+      </div>
+      <div class="status-pills">
+        <span id="depsStatus">Deps</span>
+        <span id="textModel">Text</span>
+        <span id="visionStatus">Vision</span>
+      </div>
+    </section>
+
+    <section class="setup-band">
+      <div class="pane-head">
+        <h2>设置</h2>
+        <span id="configStatus">未读取</span>
+      </div>
+      <div class="setup-grid">
+        <label>
+          <span>文本 API Key</span>
+          <input id="textApiKeyInput" type="password" placeholder="留空则不修改已保存的 key">
+        </label>
+        <label>
+          <span>文本 Base URL</span>
+          <input id="textBaseUrlInput" type="url" placeholder="https://api.deepseek.com/v1">
+        </label>
+        <label>
+          <span>文本模型</span>
+          <input id="textModelInput" type="text" placeholder="deepseek-chat">
+        </label>
+        <label>
+          <span>视觉 API Key</span>
+          <input id="visionApiKeyInput" type="password" placeholder="留空则不修改已保存的 key">
+        </label>
+        <label>
+          <span>视觉 Base URL</span>
+          <input id="visionBaseUrlInput" type="url" placeholder="https://api.openai.com/v1">
+        </label>
+        <label>
+          <span>视觉模型</span>
+          <input id="visionModelInput" type="text" placeholder="gpt-4o-mini">
+        </label>
+      </div>
+      <div class="setup-actions">
+        <button id="saveConfigBtn" class="primary">保存设置</button>
+        <p id="depsHelp"></p>
+        <p class="model-help">模型名区分大小写，并取决于账号权限。DashScope 示例：Base URL 填 https://dashscope.aliyuncs.com/compatible-mode/v1，文本可试 qwen-plus/qwen3.7-max，视觉可试 qwen3-vl-plus/qwen-vl-plus。</p>
+      </div>
+    </section>
+
+    <section class="control-band">
+      <label class="url-field">
+        <span>作业链接</span>
+        <input id="urlInput" type="url" placeholder="https://...">
+      </label>
+      <label class="toggle">
+        <input id="headlessInput" type="checkbox">
+        <span>无头</span>
+      </label>
+      <label class="toggle">
+        <input id="visionFallbackInput" type="checkbox" checked>
+        <span>视觉兜底</span>
+      </label>
+      <div class="actions">
+        <button id="startBtn">启动</button>
+        <button id="extractBtn">提取</button>
+        <button id="solveBtn">求解</button>
+        <button id="visionBtn">视觉求解</button>
+        <button id="fillBtn" class="primary">填入</button>
+        <button id="closeBtn" class="ghost">关闭</button>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <div class="pane">
+        <div class="pane-head">
+          <h2>题目</h2>
+          <span id="groupCount">0</span>
+        </div>
+        <div id="groups" class="list empty">暂无题目</div>
+      </div>
+
+      <div class="pane">
+        <div class="pane-head">
+          <h2>答案</h2>
+          <span id="resultCount">0</span>
+        </div>
+        <div id="results" class="list empty">暂无答案</div>
+      </div>
+    </section>
+
+    <section class="log-wrap">
+      <div class="pane-head">
+        <h2>记录</h2>
+        <button id="clearLogBtn" class="ghost small">清空</button>
+      </div>
+      <pre id="log"></pre>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
