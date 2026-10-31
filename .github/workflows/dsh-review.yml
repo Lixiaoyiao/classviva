@@ -1,45 +1,162 @@
-name: DSH review
-
+name: PR 526 real-provider validation
 on:
-  pull_request_target:
-    types: [opened, synchronize, ready_for_review, reopened]
-  issue_comment:
-    types: [created]
-  pull_request_review_comment:
-    types: [created]
-  pull_request_review:
-    types: [submitted]
-
+  workflow_dispatch:
 permissions:
   contents: read
-  issues: write
-  pull-requests: write
-
 concurrency:
-  group: dsh-${{ github.event_name == 'pull_request_target' && 'review' || 'chat' }}-${{ github.event.pull_request.number || github.event.issue.number }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request_target' }}
-
+  group: pr-526-replay-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
-  review:
-    if: >-
-      (github.event_name == 'pull_request_target' && github.event.pull_request.draft == false) ||
-      (github.event.sender.type != 'Bot' &&
-      contains(github.event.comment.body || github.event.review.body, '@dsh'))
+  quality:
+    if: github.actor == 'Lixiaoyiao' && github.repository == 'Lixiaoyiao/classviva'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout trusted base or default branch only
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
+          ref: 3008bdc79d05221d0535c62e75e23005a7f294e4
           persist-credentials: false
-          fetch-depth: 1
-
-      - uses: Lixiaoyiao/DSH-action@23a998ccd209f5422f220f038234a89984f0471c # v0.12.2
+      - name: Verify source before execution
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(gh api repos/Lixiaoyiao/classviva/git/ref/heads/main --jq .object.sha)" = "3008bdc79d05221d0535c62e75e23005a7f294e4"
+          test "$(git rev-parse HEAD)" = "3008bdc79d05221d0535c62e75e23005a7f294e4"
+      - name: Run pinned candidate
+        id: dsh
+        uses: Lixiaoyiao/DSH-action@43c8fce6d91894ae01ad6f79177400c68a90e73d
         with:
           deepseek-api-key: ${{ secrets.DEEPSEEK_API_KEY }}
-          dsh-version: 0.2.1-rc.2
+          github-token: ${{ github.token }}
+          command: task
+          task-access: read
+          prompt: "该项目质量如何？"
           permission-profile: strict
           isolation: docker
-          natural-language-write: "false"
           allow-write: "false"
+          natural-language-write: "false"
+          progress-comment: "false"
+          diagnostics: detailed
+          timeout-minutes: "20"
+      - name: Record and assert actual execution
+        if: always()
+        env:
+          RESULT_JSON: ${{ steps.dsh.outputs['result-json'] }}
+          ACTION_OUTCOME: ${{ steps.dsh.outcome }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node <<'NODE'
+          const fs=require("node:fs"); let r; try { r=JSON.parse(process.env.RESULT_JSON); } catch { r={conclusion:"failure",outputUnavailable:true}; } fs.writeFileSync("result.json",JSON.stringify({candidate:"43c8fce6d91894ae01ad6f79177400c68a90e73d",source:"3008bdc79d05221d0535c62e75e23005a7f294e4",scenario:"quality",originalCommentId:6529339842,actionOutcome:process.env.ACTION_OUTCOME,result:r},null,2)); if(process.env.ACTION_OUTCOME!=="success" || r.conclusion!=="success" || r.permissions.workspaceWrite!==false || r.policy.trust!=="trusted-read" || !(r.loop.dshToolReceipts.some(x => ["workspace.read","workspace.search"].includes(x.id) && x.completed && x.ok)) || r.write) throw new Error("Real-provider execution evidence did not satisfy the scenario"); console.log(JSON.stringify({scenario:"quality",durationMs:r.durationMs,summary:r.summary,taskOutput:r.taskOutput,receipts:r.loop.dshToolReceipts}));
+          NODE
+          test "$(gh api repos/Lixiaoyiao/classviva/git/ref/heads/main --jq .object.sha)" = "3008bdc79d05221d0535c62e75e23005a7f294e4"
+      - name: Preserve result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr-526-quality
+          path: result.json
+          retention-days: 3
+          if-no-files-found: error
+  search:
+    if: github.actor == 'Lixiaoyiao' && github.repository == 'Lixiaoyiao/classviva'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 3008bdc79d05221d0535c62e75e23005a7f294e4
+          persist-credentials: false
+      - name: Verify source before execution
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(gh api repos/Lixiaoyiao/classviva/git/ref/heads/main --jq .object.sha)" = "3008bdc79d05221d0535c62e75e23005a7f294e4"
+          test "$(git rev-parse HEAD)" = "3008bdc79d05221d0535c62e75e23005a7f294e4"
+      - name: Run pinned candidate
+        id: dsh
+        uses: Lixiaoyiao/DSH-action@43c8fce6d91894ae01ad6f79177400c68a90e73d
+        with:
+          deepseek-api-key: ${{ secrets.DEEPSEEK_API_KEY }}
+          github-token: ${{ github.token }}
+          command: task
+          task-access: read
+          prompt: "Call the actual DSH web_search tool exactly once for \"site:api-docs.deepseek.com context caching\". Copy the first returned source title and absolute URL into taskOutput. If no source is returned, report blocked. Do not invent a source or call other tools."
+          permission-profile: custom
+          isolation: docker
+          allow-write: "false"
+          natural-language-write: "false"
+          progress-comment: "false"
+          diagnostics: detailed
+          timeout-minutes: "12"
+          allowed-tools: "[\"native.web-search\"]"
+          task-output-schema: "{\"type\":\"object\",\"properties\":{\"title\":{\"type\":\"string\",\"minLength\":1},\"url\":{\"type\":\"string\",\"format\":\"uri\"}},\"required\":[\"title\",\"url\"],\"additionalProperties\":false}"
+      - name: Record and assert actual execution
+        if: always()
+        env:
+          RESULT_JSON: ${{ steps.dsh.outputs['result-json'] }}
+          ACTION_OUTCOME: ${{ steps.dsh.outcome }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node <<'NODE'
+          const fs=require("node:fs"); let r; try { r=JSON.parse(process.env.RESULT_JSON); } catch { r={conclusion:"failure",outputUnavailable:true}; } fs.writeFileSync("result.json",JSON.stringify({candidate:"43c8fce6d91894ae01ad6f79177400c68a90e73d",source:"3008bdc79d05221d0535c62e75e23005a7f294e4",scenario:"search",originalCommentId:null,actionOutcome:process.env.ACTION_OUTCOME,result:r},null,2)); if(process.env.ACTION_OUTCOME!=="success" || r.conclusion!=="success" || r.permissions.workspaceWrite!==false || r.policy.trust!=="trusted-read" || !(r.loop.dshToolReceipts.some(x => x.id === "native.web-search" && x.completed && x.ok)) || r.write) throw new Error("Real-provider execution evidence did not satisfy the scenario"); console.log(JSON.stringify({scenario:"search",durationMs:r.durationMs,summary:r.summary,taskOutput:r.taskOutput,receipts:r.loop.dshToolReceipts}));
+          NODE
+          test "$(gh api repos/Lixiaoyiao/classviva/git/ref/heads/main --jq .object.sha)" = "3008bdc79d05221d0535c62e75e23005a7f294e4"
+      - name: Preserve result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr-526-search
+          path: result.json
+          retention-days: 3
+          if-no-files-found: error
+  fetch:
+    if: github.actor == 'Lixiaoyiao' && github.repository == 'Lixiaoyiao/classviva'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 3008bdc79d05221d0535c62e75e23005a7f294e4
+          persist-credentials: false
+      - name: Verify source before execution
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(gh api repos/Lixiaoyiao/classviva/git/ref/heads/main --jq .object.sha)" = "3008bdc79d05221d0535c62e75e23005a7f294e4"
+          test "$(git rev-parse HEAD)" = "3008bdc79d05221d0535c62e75e23005a7f294e4"
+      - name: Run pinned candidate
+        id: dsh
+        uses: Lixiaoyiao/DSH-action@43c8fce6d91894ae01ad6f79177400c68a90e73d
+        with:
+          deepseek-api-key: ${{ secrets.DEEPSEEK_API_KEY }}
+          github-token: ${{ github.token }}
+          command: task
+          task-access: read
+          prompt: "请访问 https://raw.githubusercontent.com/Lixiaoyiao/DSH-action/721f8bbca2e122949fbe9c867ac59963b2cb2a59/README.md，告诉我大体内容是什么。必须实际调用 web_fetch，不能凭记忆作答。"
+          permission-profile: custom
+          isolation: docker
+          allow-write: "false"
+          natural-language-write: "false"
+          progress-comment: "false"
+          diagnostics: detailed
+          timeout-minutes: "12"
+          allowed-tools: "[\"native.web-fetch\"]"
+      - name: Record and assert actual execution
+        if: always()
+        env:
+          RESULT_JSON: ${{ steps.dsh.outputs['result-json'] }}
+          ACTION_OUTCOME: ${{ steps.dsh.outcome }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node <<'NODE'
+          const fs=require("node:fs"); let r; try { r=JSON.parse(process.env.RESULT_JSON); } catch { r={conclusion:"failure",outputUnavailable:true}; } fs.writeFileSync("result.json",JSON.stringify({candidate:"43c8fce6d91894ae01ad6f79177400c68a90e73d",source:"3008bdc79d05221d0535c62e75e23005a7f294e4",scenario:"fetch",originalCommentId:null,actionOutcome:process.env.ACTION_OUTCOME,result:r},null,2)); if(process.env.ACTION_OUTCOME!=="success" || r.conclusion!=="success" || r.permissions.workspaceWrite!==false || r.policy.trust!=="trusted-read" || !(r.loop.dshToolReceipts.some(x => x.id === "native.web-fetch" && x.completed && x.ok)) || r.write) throw new Error("Real-provider execution evidence did not satisfy the scenario"); console.log(JSON.stringify({scenario:"fetch",durationMs:r.durationMs,summary:r.summary,taskOutput:r.taskOutput,receipts:r.loop.dshToolReceipts}));
+          NODE
+          test "$(gh api repos/Lixiaoyiao/classviva/git/ref/heads/main --jq .object.sha)" = "3008bdc79d05221d0535c62e75e23005a7f294e4"
+      - name: Preserve result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr-526-fetch
+          path: result.json
+          retention-days: 3
+          if-no-files-found: error
